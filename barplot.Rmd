@@ -13,58 +13,70 @@ library(purrr)
 
 ```{js echo=FALSE}
 const initSvg = (id) => {
-  const my_svg = d3
+  const mySvg = d3
     .select(id)
     .append("svg")
     .attr("width", 500)
-    .attr("height", 300);
-  return my_svg;
+    .attr("height", 200);
+  return mySvg;
 }
-const addDummyRect = (svg, scaleX = (x) => x) => {
+const addDummyRect = (svg, scaleX = (x) => x, height = 200) => {
   svg.selectAll(".my-bar-class")
-    .data(dummy_data)
+    .data(dummyData)
     .join("rect")
-      .attr("x", 0)
-      .attr("height", 300 / 3 * 0.8)
-      .attr("y", (_, i) => 300 / 3 * i)
+    .attr("x", 0)
+    .attr("height", height / 3 * 0.8)
+      .attr("y", (_, i) => height / 3 * i)
       .attr("width", (row) => scaleX(row.value));
 }
 ```
 
-In this tutorial I will prove that making a chart with D3.js is super easy. This tutorial is addressed to R users, so I will use R to demistify D3 by showing how we can achieve similar result using R.
+> **"I can't learn D3 because I don't know JavaScript."** - `FALSE`
 
-# We need some svg.
+Some knowledge of JavaScript is needed, but really very basic. Learning new language is just remembering some conventions and code syntax. Most important is understanding what code is doing. Remebering the syntax will come with time.
 
-First, we must create an `svg` element with some width and height.
+# svg
 
-We can achive it just with HTML:
+To make chart `<svg>` element is needed. By default it has size of 300*x*150 but we can set it with `width` and `height` attributes.
 
-```{HTML}
-<div id="plot-parent">
-  <svg width="500" height="300"></svg>
-</div>
-```
-
-With D3.js we would select our plot parent element and append `svg` to it:
+With D3.js we can select our chart parent element and append `svg` to it.
 
 ```{js eval=FALSE}
-const my_svg = d3
+const mySvg = d3
   .select("#plot-parent")
   .append("svg")
   .attr("width", 500)
-  .attr("height", 300);
+  .attr("height", 200);
 ```
 
-In Shiny it is just:
+(`select`method accepts any css selector)
+
+We can achieve the same result with HTML:
+
+```{HTML}
+<div id="plot-parent">
+  <svg width="500" height="200"></svg>
+</div>
+```
+
+And even with Shiny:
 
 ```{r eval=FALSE}
 div(
   id = "plot-parent",
-  tags$svg(width = 500, height = 300)
+  tags$svg(width = 500, height = 200)
 )
 ```
 
-Now we need to add some margin, scales, axes... Ok let's just put some bars to not get bored to much!
+In two last options in D3 we would olny need to store created `<svg>` in variable:
+
+```{js eval=FALSE}
+const mySvg = d3.select("svg");
+```
+
+# Bars
+
+Now we need to add some margin, scales, axes... Ok let's put some bars first to not get bored at the beginning.
 
 We will use following dummy data:
 
@@ -76,62 +88,61 @@ dummy_data <- data.frame(
 knitr::kable(dummy_data)
 ```
 
-We can add bars with following code:
+We can add bars with the following code:
 
 ```{js eval=FALSE}
-svg_my.selectAll(".my-bar-class")
-  .data(dummy_data)
+mySvg.selectAll(".my-bar-class")
+  .data(dummyData)
   .join("rect")
     .attr("x", 0)
-    .attr("height", 300 / 3 * 0.8)
-    .attr("y", (_, i) => 300 / 3 * i)
+    .attr("height", 200 / 3 * 0.8)
+    .attr("y", (_, i) => 200 / 3 * i)
     .attr("width", (row) => row.value);
 ```
 
 <div id="plot-parent"></div>
 
 ```{js echo=FALSE}
-let dummy_data = [
+let dummyData = [
   { category: "A", value: 300 },
   { category: "B", value: 100 },
   { category: "C", value: 50 }
 ];
 
-let my_svg = initSvg("#plot-parent");
-addDummyRect(my_svg);
+let mySvg = initSvg("#plot-parent");
+addDummyRect(mySvg);
 ```
 
 *"Ok... we have 3 ugly rectangles and some spaghetti code that is not easy at all."*
-Yee, looks a bit strange. But try to think about what are we doing rather then about code syntax. 
-I will do the same using R:
+Yee, looks a bit strange, but let's try to understand what this code do. To make it simpler I will do the same using R:
 
 ```{r}
 tags$svg(
-  width = 500, height = 300,
+  width = 500, height = 200,
   map(1:nrow(dummy_data), function(i) {
     tags$rect(
       x = 0,
-      height = 300 / 3 * 0.8,
-      y = 300 / 3 * (i - 1),
+      height = 200 / 3 * 0.8,
+      y = 200 / 3 * (i - 1),
       width = dummy_data[i, ]$value
     )
   })
 )
 ```
 
-Ok. Now let's discuss D3.js code:
+The main thing this code does is iterating through data and map it to `<rect>` elements. Let's also discuss D3 code in details:
 
 ```{js eval=FALSE}
-my_svg.selectAll(".my-bar-class")
+mySvg.selectAll(".my-bar-class")
 ```
 
-* since there are no elements with class ".my-bar-class" in our svg, D3 creates placeholders for our data and elements
+* since there are no elements with class ".my-bar-class" in our svg, D3 creates placeholders (for data and elements)
 
 ```{js eval=FALSE}
-  .data(dummy_data)
+  .data(dummyData)
 ```
 
-* join `dummy_data` to placeholders
+* join `dummyData` to placeholders
 
 ```{js eval=FALSE}
   .join("rect")
@@ -146,17 +157,18 @@ my_svg.selectAll(".my-bar-class")
 * our bars starts on x = 0
 
 ```{js eval=FALSE}
-    .attr("height", 300 / 3 * 0.8)
+    .attr("height", 200 / 3 * 0.8)
 ```
 
 * height is calculated by dividing plot height by number of bars and multiply by 0.8 to give some padding
 
 ```{js eval=FALSE}
-    .attr("y", (row, i) => 300 / 3 * i)
+    .attr("y", (row, i) => 200 / 3 * i)
 ```
 
-* in `attr` method we can iterate over data that we joined earlier with `data` method, using function - first argument is row data, second is row number;
-  I use *arrow function* for brevity but we can use regular function - `function(row, i) { ... }`
+* in `attr` method we can iterate over data (that we joined earlier with `data` method) using function - first argument is data row, second is row number
+
+  I use *arrow function* for brevity but we can use regular function as well - `function(row, i) { ... }`
 
 ```{js eval=FALSE}
     .attr("width", (row) => row.value);
@@ -164,12 +176,14 @@ my_svg.selectAll(".my-bar-class")
 
 * set `<rect>` width to "value" column
 
-Nice! Now let's try with some bigger values:
+# Scale
+
+Now let's try with smaller values:
 
 ```{r echo=FALSE}
 dummy_data <- data.frame(
   category = c("A", "B", "C"),
-  value = c(3000, 1000, 500)
+  value = c(30, 10, 5)
 )
 knitr::kable(dummy_data)
 ```
@@ -177,14 +191,14 @@ knitr::kable(dummy_data)
 <div id="plot-parent-bigger"></div>
 
 ```{js echo=FALSE}
-dummy_data = [
-  { category: "A", value: 3000 },
-  { category: "B", value: 1000 },
-  { category: "C", value: 500 }
+dummyData = [
+  { category: "A", value: 30 },
+  { category: "B", value: 10 },
+  { category: "C", value: 5 }
 ];
 
-my_svg = initSvg("#plot-parent-bigger");
-addDummyRect(my_svg);
+mySvg = initSvg("#plot-parent-bigger");
+addDummyRect(mySvg);
 ```
 
 Ok. Now we realy need scale. `d3.scaleLinear` takes two arguments - domain and range:
@@ -194,33 +208,33 @@ Ok. Now we realy need scale. `d3.scaleLinear` takes two arguments - domain and r
 
 ```{js eval=FALSE}
 const svgWidth = 500;
-const valueMax = d3.max(dummy_data, (row) => row.value);
+const valueMax = d3.max(dummyData, (row) => row.value);
 
 const scaleX = d3.scaleLinear(
   [0, valueMax],
   [0, svgWidth]
-)
+);
 ```
 
 *"Ok, but what's that???"*
 
 ```{js eval=FALSE}
-d3.max(dummy_data, (row) => row.value);
+d3.max(dummyData, (row) => row.value);
 ```
 
 *"Why can't you just do something like:"*
 
 ```{js eval=FALSE}
-d3.max(dummy_data.value);
+d3.max(dummyData.row);
 ```
 
 In JS "data.frame" is an array of objects:
 
 ```{js eval=FALSE}
 [
-  { category: "A", value: 3000 },
-  { category: "B", value: 1000 },
-  { category: "C", value: 500 }
+  { category: "A", value: 30 },
+  { category: "B", value: 10 },
+  { category: "C", value: 5 }
 ];
 ```
 
@@ -228,19 +242,19 @@ We can compare it to a list of named lists in R:
 
 ```{r, eval=FALSE}
 list(
-  list(category = "A", value = 3000),
-  list(category = "B", value = 1000),
-  list(category = "C", value = 500)
+  list(category = "A", value = 30),
+  list(category = "B", value = 10),
+  list(category = "C", value = 5)
 )
 ```
 
-So to select some "column" in JS we need to map through array objects:
+So, to select some "column" in JS we need to map through array objects and pull given value from each:
 
 ```{js, eval=FALSE}
-dummy_data.map((row) => row.value);
+dummyData((row) => row.value);
 ```
 
-And `d3.min` function takes accessor function as second parameter.
+`d3.max` function takes accessor function as second parameter.
 
 Back to our scale. `d3.scaleLinear` returns a function that maps our data values (domain) to pixels on svg (range).
 
@@ -254,7 +268,7 @@ scale_linear <- function(domain, range) {
 }
 ```
 
-Now let's try to plot out dataset with bigger values using scale:
+If we plot our new data using scale the biggest bar will fill the whole `<svg>`:
 
 ```{js eval=FALSE}
   .attr("width", (row) => scaleX(row.value));
@@ -264,56 +278,375 @@ Now let's try to plot out dataset with bigger values using scale:
 
 ```{js echo=FALSE}
 let svgWidth = 500;
-let valueMax = d3.max(dummy_data, (row) => row.value);
+let valueMax = d3.max(dummyData, (row) => row.value);
 
 let scaleX = d3.scaleLinear(
   [0, valueMax],
   [0, svgWidth]
-)
+);
 
-my_svg = initSvg("#plot-parent-bigger-scaled");
-addDummyRect(my_svg, scaleX);
+mySvg = initSvg("#plot-parent-bigger-scaled");
+addDummyRect(mySvg, scaleX);
 ```
 
-We must add axis to actualy see the efect.
+# Axis
 
-
-
-
-
-
-<br/>
-<br/>
-<br/>
-<br/>
-<br/>
-<br/>
-<br/>
-
-
-
-
-Probably we will also need some margins for chart axes:
+To see if we realy have correct values we must add axis. This time D3 offers very convinient function:
 
 ```{js eval=FALSE}
-const width = 500;
-const height = 300;
+const axisX = d3.axisBottom(scaleX);
+mySvg.append("g").call(axisX);
+```
+
+`<g>` tag is similar to `<div>` with one difference - it can't have any visual style. It's used only to group other elements.
+`call` method is used to call `axisX` as function - `axisX()` and append result to `<g>` tag.
+
+<div id="plot-axis"></div>
+
+```{js echo=FALSE}
+mySvg = initSvg("#plot-axis");
+addDummyRect(mySvg, scaleX);
+let axisX = d3.axisBottom(scaleX);
+mySvg.append("g").call(axisX);
+```
+
+```{css echo=FALSE}
+#plot-axis text {
+  fill:white
+}
+#plot-axis line {
+  stroke:white
+}
+```
+
+*"Didn't I said axis**Bottom**??? Why it's on top?"*
+
+Axis bottom means that labels and ticks are on the bottom of the axis. D3 is not aweare what's your chart height, so it put's it at (0, 0) coordinates. It's our duty to put it in right place. We can do it using `transform` attribute:
+
+```{js eval=FALSE}
+const svgHeight = 200;
+
+mySvg.append("g")
+  .attr("transform", `translate(0, ${svgHeight})`)
+  .call(axisX)
+```
+
+Here - `` `translate(0, ${svgHeight})` `` - I used string interpolation, similar to R `glue`. In JS this functionality is built in. You have to use backticks - `` ` ``, and inside `${}` you can put variable or code that will evaluate.
+
+<div id="plot-axis-transform"></div>
+
+```{js echo=FALSE}
+const svgHeight = 200;
+mySvg = initSvg("#plot-axis-transform");
+addDummyRect(mySvg, scaleX);
+mySvg.append("g")
+  .attr("transform", `translate(0, ${svgHeight})`)
+  .call(axisX)
+```
+
+## Margin
+
+Our axis is this thin line at the bottom. We can't see ticks and labels because they are outside of our svg. To make them visible we need to add margins to out chart. To do this we can use `<g>` tag and `transform` attribute.
+
+```{js eval=FALSE}
+const svgWidth = 500;
+const svgHeight = 200;
 const margin = {
   top: 10,
   right: 10,
   bottom: 30,
-  left: 50
-}
-const panelWidth = width - margin.left - margin.right;
-const panelHeight = height - margin.top - margin.bottom;
+  left:30
+};
+const plotWidth = svgWidth - margin.left - margin.right;
+const plotHeight = svgHeight - margin.top - margin.bottom;
 
-const svg = d3.select("#plot-parent")
+const mySvg = d3
+  .select("#plot-parent")
   .append("svg")
-  .attr("width", 500)
-  .attr("height", 300)
+  .attr("width", svgWidth)
+  .attr("height", svgHeight)
 
-
+const plot = mySvg
+  .append("g")
+  .attr("transform", `translate(${margin.left}, ${margin.top})`);
 ```
 
+To better visualize what we achieved I've added black border to `<svg>` element and rectangle with blue border that represents `plot` element dimensions and position. Now all elements appended to `plot` will have origin in the point marked with blue dot.
+
+<svg width="500" height="200">
+  <rect width="500" height="200" style="fill: white; stroke: black"></rect>
+  <g transform="translate(30, 10)">
+    <rect width="460" height="160" style="fill: white; stroke: steelblue"></rect>
+    <circle r="4" fill="steelblue" />
+    <text x="5" y="15">(0, 0)</text>
+  </g>
+</svg>
+
+With respect to the blue point x-axis has to be `transform`ed in y-dimension with a value of `plotHeight`.
+
+We also have to append `<rect>` elements to `plot`.
+
+```{js eval=FALSE}
+plot.append("g")
+  .attr("transform", `translate(0, ${plotHeight})`)
+  .call(axisX)
+
+plot.selectAll(".my-bar-class")
+  .data(dummyData)
+  .join("rect")
+    .attr("x", 0)
+    .attr("height", plotHeight / 3 * 0.8)
+    .attr("y", (_, i) => plotHeight / 3 * i)
+    .attr("width", (row) => scaleX(row.value));
+```
+
+<div id="plot-axis-margin"></div>
+
+```{js echo=FALSE}
+const margin = {
+  top: 10,
+  right: 10,
+  bottom: 30,
+  left:30
+};
+const plotWidth = svgWidth - margin.left - margin.right;
+const plotHeight = svgHeight - margin.top - margin.bottom;
+
+mySvg = d3
+  .select("#plot-axis-margin")
+  .append("svg")
+  .attr("width", svgWidth)
+  .attr("height", svgHeight)
+
+let plot = mySvg
+  .append("g")
+  .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+scaleX.range([0, plotWidth]);
+
+addDummyRect(plot, scaleX, plotHeight);
+plot.append("g")
+  .attr("transform", `translate(0, ${plotHeight})`)
+  .call(axisX)
+```
+Axis ticks and labels are now visible. We can also see that bars width is scaled properly.
+
+The last piece we're missing is y-axis. Let's add it now. For categorical variables most often `d3.scaleBand` is used. As a domain it accepts array of unique values.
+
+```{js eval=FALSE}
+const domainY = [...new Set(dummyData.map((row) => row.category))];
+const scaleY = d3
+  .scaleBand(domainY, [0, plotHeight])
+  .padding(0.2)
+const axisY = d3.axisLeft(scaleY);
+plot.append("g").call(axisY);
+
+plot.selectAll(".my-bar-class")
+  .data(dummyData)
+  .join("rect")
+    .attr("x", 0)
+    .attr("height", scaleY.bandwidth())
+    .attr("y", (row) => scaleY(row.category))
+    .attr("width", (row) => scaleX(row.value));
+```
+
+* `[...new Set(dummyArray)]` is equivalent to `unique(dummy_vector)`
+* with `padding` method we can get space around bars (value returned by `scaleY.bandwidth()` depends on value passed to `padding`)
+* y-axis should start at point (0, 0) of our `plot` so `transform` is not needed here
+* we can use `scaleY` to get `y` position of bars
+
+<div id="plot-complete"></div>
+
+```{js echo=FALSE}
+mySvg = d3
+  .select("#plot-complete")
+  .append("svg")
+  .attr("width", svgWidth)
+  .attr("height", svgHeight)
+
+plot = mySvg
+  .append("g")
+  .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+plot.append("g")
+  .attr("transform", `translate(0, ${plotHeight})`)
+  .call(axisX)
+
+const domainY = [...new Set(dummyData.map((row) => row.category))];
+const scaleY = d3.scaleBand(domainY, [0, plotHeight]).padding(0.2);
+const axisY = d3.axisLeft(scaleY);
+plot.append("g").call(axisY);
+
+plot.selectAll(".my-bar-class")
+  .data(dummyData)
+  .join("rect")
+    .attr("x", 0)
+    .attr("height", scaleY.bandwidth())
+    .attr("y", (row) => scaleY(row.category))
+    .attr("width", (row) => scaleX(row.value));
+```
+# Pimp my chart
+
+Default D3 chars doesn't look good. It's possible to change styles with D3 but personally I prefer to use CSS.
+
+## Axis
+
+D3 axis consists of 3 elements:
+
+* <span style="color: #50CB93">domain line</span>
+* <span style="color: #ED8E7C">ticks</span>
+* <span style="color: #A03C78">labels</span>
+
+We can change them with following CSS selectors:
+
+```{css eval=FALSE}
+.domain {
+  stroke: #50CB93;
+}
+.tick > line {
+  stroke: #ED8E7C;
+}
+.tick > text {
+  color: #A03C78;
+}
+```
+
+<svg id="axis-style" width="700" height="40"></svg>
+
+```{js echo=FALSE}
+d3.select("#axis-style").append("g").attr("transform", "translate(15, 10) scale(1.3)").call(axisX);
+```
+
+```{css echo=FALSE}
+#axis-style .domain {
+  stroke: #50CB93;
+}
+#axis-style .tick > line {
+  stroke: #ED8E7C;
+}
+#axis-style .tick > text {
+  fill: #A03C78;
+}
+```
+
+## Grid lines
+
+To get grid lines with minimal effort I often use the trick to set axis ticks size to negative plot width/height.
+
+In our plot vertical lines would not be very usefull. To differentiate them from horizontal I will add classes to `<g>` tags.
+
+```{js eval=FALSE}
+const axisX = d3.axisBottom(scaleX).tickSize(-plotHeight);
+const axisY = d3.axisLeft(scaleY).tick(-plotWidth);
+
+plot.append("g")
+  .attr("class", "axis-x")
+  .attr("transform", `translate(0, ${plotHeight})`)
+  .call(axisX);
+plot.append("g")
+  .attr("class", "axis-y")
+  .call(axisY);
+```
+
+<div id="plot-grid"></div>
+
+```{js echo=FALSE}
+mySvg = d3
+  .select("#plot-grid")
+  .append("svg")
+  .attr("width", svgWidth)
+  .attr("height", svgHeight)
+
+plot = mySvg
+  .append("g")
+  .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+plot.append("g")
+  .attr("class", "axis-x")
+  .attr("transform", `translate(0, ${plotHeight})`)
+  .call(axisX.tickSize(-plotHeight));
+
+plot.append("g")
+  .attr("class", "axis-y")
+  .call(axisY.tickSize(-plotWidth))
+
+plot.selectAll(".my-bar-class")
+  .data(dummyData)
+  .join("rect")
+    .attr("x", 0)
+    .attr("height", scaleY.bandwidth())
+    .attr("y", (row) => scaleY(row.category))
+    .attr("width", (row) => scaleX(row.value));
+```
+
+## CSS example
+
+* remove both domain lines and y-axis ticks
+
+```{css eval=FALSE}
+.domain, .axis-y > .tick > line {
+  stroke: transparent;
+}
+```
+
+* make x-axis grid lines lighter
+
+```{css eval=FALSE}
+.axis-x > .tick > line {
+  opacity: 0.2;
+}
+```
+
+* change axes labels font and size
+
+```{css eval=FALSE}
+.tick > text {
+  font-family: Verdana;
+  font-size: 14px;
+}
+```
+
+* move y-axis labels a bit further from the bars
+
+```{css eval=FALSE}
+.axis-y > .tick > text {
+  transform: translateX(-10px);
+}
+```
+
+* change the color of bars and setting some opacity
+
+```{css eval=FALSE}
+rect {
+  fill: #125D98;
+  opacity: 0.6;
+}
+```
+
+<div id="plot-style"></div>
+
+```{js echo=FALSE}
+$("#plot-style").append($("#plot-grid > svg").clone());
+```
+
+```{css echo=FALSE}
+#plot-style .domain, #plot-style .axis-y > .tick > line {
+  stroke: transparent;
+}
+#plot-style .axis-x > .tick > line {
+  opacity: 0.2;
+}
+#plot-style .tick > text {
+  font-family: Verdana;
+  font-size: 14px;
+}
+#plot-style .axis-y > .tick > text {
+  transform: translateX(-10px);
+}
+#plot-style rect {
+  fill: #125D98;
+  opacity: 0.6;
+}
+```
 
 
