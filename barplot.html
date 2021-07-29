@@ -202,21 +202,15 @@ const addDummyRect = (svg, scaleX = (x) => x, height = 200) => {
   .attr(&quot;width&quot;, 500)
   .attr(&quot;height&quot;, 200);</code></pre>
 <p>(<code>select</code>method accepts any css selector)</p>
-<p>We can achieve the same result with HTML:</p>
-<pre class="html"><code>&lt;div id=&quot;plot-parent&quot;&gt;
-  &lt;svg width=&quot;500&quot; height=&quot;200&quot;&gt;&lt;/svg&gt;
-&lt;/div&gt;</code></pre>
-<p>And even with Shiny:</p>
-<pre class="r"><code>div(
-  id = &quot;plot-parent&quot;,
-  tags$svg(width = 500, height = 200)
-)</code></pre>
-<p>In two last options in D3 we would olny need to store created <code>&lt;svg&gt;</code> in variable:</p>
+<p>We can achieve the same result with Shiny:</p>
+<pre class="r"><code>tags$svg(width = 500, height = 200)</code></pre>
+<p>Then in D3 we would olny need to store created <code>&lt;svg&gt;</code> in a variable:</p>
 <pre class="js"><code>const mySvg = d3.select(&quot;svg&quot;);</code></pre>
+<p>Since we’re Shiny users we will proceed with second option.</p>
 </div>
 <div id="bars" class="section level1">
 <h1>Bars</h1>
-<p>Now we need to add some margin, scales, axes… Ok let’s put some bars first to not get bored at the beginning.</p>
+<p>Now we need to add some margin, scales, axes… Ok let’s put some bars first to not get too bored at the beginning.</p>
 <p>We will use following dummy data:</p>
 <table>
 <thead>
@@ -406,8 +400,14 @@ addDummyRect(mySvg, scaleX);
 <div id="axis" class="section level1">
 <h1>Axis</h1>
 <p>To see if we realy have correct values we must add axis. This time D3 offers very convinient function:</p>
+<p>In Shiny we have to add <code>&lt;g&gt;</code> tag to append our axis to:</p>
+<pre class="r"><code>tags$svg(
+  width = 500, height = 200,
+  tags$g(class = &quot;axis-x&quot;)
+)</code></pre>
+<p>In JS we have to create axis by passing our scale to <code>axisBottom</code> function, select our <code>&lt;g&gt;</code> tag with class <code>&quot;axis-x&quot;</code> and append axis to it.</p>
 <pre class="js"><code>const axisX = d3.axisBottom(scaleX);
-mySvg.append(&quot;g&quot;).call(axisX);</code></pre>
+mySvg.select(&quot;.axis-x&quot;).call(axisX);</code></pre>
 <p><code>&lt;g&gt;</code> tag is similar to <code>&lt;div&gt;</code> with one difference - it can’t have any visual style. It’s used only to group other elements. <code>call</code> method is used to call <code>axisX</code> as function - <code>axisX()</code> and append result to <code>&lt;g&gt;</code> tag.</p>
 <div id="plot-axis">
 
@@ -430,9 +430,9 @@ mySvg.append("g").call(axisX);
 <p>Axis bottom means that labels and ticks are on the bottom of the axis. D3 is not aweare what’s your chart height, so it put’s it at (0, 0) coordinates. It’s our duty to put it in right place. We can do it using <code>transform</code> attribute:</p>
 <pre class="js"><code>const svgHeight = 200;
 
-mySvg.append(&quot;g&quot;)
+mySvg.select(&quot;.axis-x&quot;)
   .attr(&quot;transform&quot;, `translate(0, ${svgHeight})`)
-  .call(axisX)</code></pre>
+  .call(axisX);</code></pre>
 <p>Here - <code>`translate(0, ${svgHeight})`</code> - I used string interpolation, similar to R <code>glue</code>. In JS this functionality is built in. You have to use backticks - <code>`</code>, and inside <code>${}</code> you can put variable or code that will evaluate.</p>
 <div id="plot-axis-transform">
 
@@ -443,11 +443,18 @@ mySvg = initSvg("#plot-axis-transform");
 addDummyRect(mySvg, scaleX);
 mySvg.append("g")
   .attr("transform", `translate(0, ${svgHeight})`)
-  .call(axisX)
+  .call(axisX);
 </script>
 <div id="margin" class="section level2">
 <h2>Margin</h2>
 <p>Our axis is this thin line at the bottom. We can’t see ticks and labels because they are outside of our svg. To make them visible we need to add margins to out chart. To do this we can use <code>&lt;g&gt;</code> tag and <code>transform</code> attribute.</p>
+<pre class="r"><code>tags$svg(
+  width = 500, height = 200,
+  tags$g(
+    class = &quot;plot&quot;,
+    tags$g(class = &quot;axis-x&quot;)
+  )
+)</code></pre>
 <pre class="js"><code>const svgWidth = 500;
 const svgHeight = 200;
 const margin = {
@@ -460,13 +467,12 @@ const plotWidth = svgWidth - margin.left - margin.right;
 const plotHeight = svgHeight - margin.top - margin.bottom;
 
 const mySvg = d3
-  .select(&quot;#plot-parent&quot;)
-  .append(&quot;svg&quot;)
+  .select(&quot;svg&quot;)
   .attr(&quot;width&quot;, svgWidth)
-  .attr(&quot;height&quot;, svgHeight)
+  .attr(&quot;height&quot;, svgHeight);
 
 const plot = mySvg
-  .append(&quot;g&quot;)
+  .select(&quot;.plot&quot;)
   .attr(&quot;transform&quot;, `translate(${margin.left}, ${margin.top})`);</code></pre>
 <p>To better visualize what we achieved I’ve added black border to <code>&lt;svg&gt;</code> element and rectangle with blue border that represents <code>plot</code> element dimensions and position. Now all elements appended to <code>plot</code> will have origin in the point marked with blue dot.</p>
 <svg width="500" height="200">
@@ -474,9 +480,9 @@ const plot = mySvg
 </svg>
 <p>With respect to the blue point x-axis has to be <code>transform</code>ed in y-dimension with a value of <code>plotHeight</code>.</p>
 <p>We also have to append <code>&lt;rect&gt;</code> elements to <code>plot</code>.</p>
-<pre class="js"><code>plot.append(&quot;g&quot;)
+<pre class="js"><code>plot.select(&quot;.axis-x&quot;)
   .attr(&quot;transform&quot;, `translate(0, ${plotHeight})`)
-  .call(axisX)
+  .call(axisX);
 
 plot.selectAll(&quot;.my-bar-class&quot;)
   .data(dummyData)
@@ -485,9 +491,9 @@ plot.selectAll(&quot;.my-bar-class&quot;)
     .attr(&quot;height&quot;, plotHeight / 3 * 0.8)
     .attr(&quot;y&quot;, (_, i) =&gt; plotHeight / 3 * i)
     .attr(&quot;width&quot;, (row) =&gt; scaleX(row.value));</code></pre>
-<div id="plot-axis-margin">
-
-</div>
+<svg id="plot-axis-margin">
+<g class="plot"> <g class="axis-x"></g> </g>
+</svg>
 <script type="text/javascript">
 const margin = {
   top: 10,
@@ -500,29 +506,28 @@ const plotHeight = svgHeight - margin.top - margin.bottom;
 
 mySvg = d3
   .select("#plot-axis-margin")
-  .append("svg")
   .attr("width", svgWidth)
-  .attr("height", svgHeight)
+  .attr("height", svgHeight);
 
 let plot = mySvg
-  .append("g")
+  .select(".plot")
   .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
 scaleX.range([0, plotWidth]);
 
 addDummyRect(plot, scaleX, plotHeight);
-plot.append("g")
+plot.select(".axis-x")
   .attr("transform", `translate(0, ${plotHeight})`)
-  .call(axisX)
+  .call(axisX);
 </script>
 <p>Axis ticks and labels are now visible. We can also see that bars width is scaled properly.</p>
 <p>The last piece we’re missing is y-axis. Let’s add it now. For categorical variables most often <code>d3.scaleBand</code> is used. As a domain it accepts array of unique values.</p>
 <pre class="js"><code>const domainY = [...new Set(dummyData.map((row) =&gt; row.category))];
 const scaleY = d3
   .scaleBand(domainY, [0, plotHeight])
-  .padding(0.2)
+  .padding(0.2);
 const axisY = d3.axisLeft(scaleY);
-plot.append(&quot;g&quot;).call(axisY);
+plot.select(&quot;.axis-x&quot;).call(axisY);
 
 plot.selectAll(&quot;.my-bar-class&quot;)
   .data(dummyData)
@@ -537,23 +542,22 @@ plot.selectAll(&quot;.my-bar-class&quot;)
 <li>y-axis should start at point (0, 0) of our <code>plot</code> so <code>transform</code> is not needed here</li>
 <li>we can use <code>scaleY</code> to get <code>y</code> position of bars</li>
 </ul>
-<div id="plot-complete">
-
-</div>
+<svg id="plot-complete">
+<g class="plot"> <g class="axis-x"></g> </g>
+</svg>
 <script type="text/javascript">
 mySvg = d3
   .select("#plot-complete")
-  .append("svg")
   .attr("width", svgWidth)
-  .attr("height", svgHeight)
+  .attr("height", svgHeight);
 
 plot = mySvg
-  .append("g")
+  .select(".plot")
   .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
-plot.append("g")
+plot.select(".axis-x")
   .attr("transform", `translate(0, ${plotHeight})`)
-  .call(axisX)
+  .call(axisX);
 
 const domainY = [...new Set(dummyData.map((row) => row.category))];
 const scaleY = d3.scaleBand(domainY, [0, plotHeight]).padding(0.2);
@@ -611,39 +615,33 @@ d3.select("#axis-style").append("g").attr("transform", "translate(15, 10) scale(
 <div id="grid-lines" class="section level2">
 <h2>Grid lines</h2>
 <p>To get grid lines with minimal effort I often use the trick to set axis ticks size to negative plot width/height.</p>
-<p>In our plot vertical lines would not be very usefull. To differentiate them from horizontal I will add classes to <code>&lt;g&gt;</code> tags.</p>
 <pre class="js"><code>const axisX = d3.axisBottom(scaleX).tickSize(-plotHeight);
 const axisY = d3.axisLeft(scaleY).tick(-plotWidth);
 
-plot.append(&quot;g&quot;)
-  .attr(&quot;class&quot;, &quot;axis-x&quot;)
+plot.select(&quot;.axis-x&quot;)
   .attr(&quot;transform&quot;, `translate(0, ${plotHeight})`)
-  .call(axisX);
-plot.append(&quot;g&quot;)
-  .attr(&quot;class&quot;, &quot;axis-y&quot;)
+  .call(axisX)
+plot.select(&quot;.axis-y&quot;)
   .call(axisY);</code></pre>
-<div id="plot-grid">
-
-</div>
+<svg id="plot-grid">
+<g class="plot"> <g class="axis-x"></g> <g class="axis-y"></g> </g>
+</svg>
 <script type="text/javascript">
 mySvg = d3
   .select("#plot-grid")
-  .append("svg")
   .attr("width", svgWidth)
-  .attr("height", svgHeight)
+  .attr("height", svgHeight);
 
 plot = mySvg
-  .append("g")
+  .select(".plot")
   .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
-plot.append("g")
-  .attr("class", "axis-x")
+plot.select(".axis-x")
   .attr("transform", `translate(0, ${plotHeight})`)
   .call(axisX.tickSize(-plotHeight));
 
-plot.append("g")
-  .attr("class", "axis-y")
-  .call(axisY.tickSize(-plotWidth))
+plot.select(".axis-y")
+  .call(axisY.tickSize(-plotWidth));
 
 plot.selectAll(".my-bar-class")
   .data(dummyData)
@@ -673,7 +671,7 @@ plot.selectAll(".my-bar-class")
 </ul>
 <pre class="css"><code>.tick &gt; text {
   font-family: Verdana;
-  font-size: 14px;
+  font-size: 12px;
 }</code></pre>
 <ul>
 <li>move y-axis labels a bit further from the bars</li>
@@ -688,32 +686,274 @@ plot.selectAll(".my-bar-class")
   fill: #125D98;
   opacity: 0.6;
 }</code></pre>
-<div id="plot-style">
+<div id="plot-style" class="plot-style">
 
 </div>
 <script type="text/javascript">
-$("#plot-style").append($("#plot-grid > svg").clone());
+$("#plot-style").append($("#plot-grid").clone());
+</script>
+</div>
+</div>
+<div id="transitions" class="section level1">
+<h1>Transitions</h1>
+<p>It was a lot of effort to make a simple barplot. But now, adding smooth, good looking transitions to our plot is super easy!</p>
+<pre class="js"><code>plot.select(&quot;.axis-x&quot;)
+  .attr(&quot;transform&quot;, `translate(0, ${plotHeight})`)
+  .transition()
+  .call(axisX);
+
+plot.select(&quot;.axis-y&quot;)
+  .transition()
+  .call(axisY);
+
+plot.selectAll(&quot;.my-bar-class&quot;)
+  .data(dummyData)
+  .join(
+    (enter) =&gt; {
+      enter
+        .append(&quot;rect&quot;)
+        .attr(&quot;class&quot;, &quot;my-bar-class&quot;)
+        .attr(&quot;x&quot;, 0)
+        .attr(&quot;height&quot;, scaleY.bandwidth())
+        .attr(&quot;y&quot;, (row) =&gt; scaleY(row.category))
+        .attr(&quot;width&quot;, (row) =&gt; scaleX(row.value));
+    },
+    (update) =&gt; {
+      update
+        .transition()
+        .attr(&quot;width&quot;, (row) =&gt; scaleX(row.value));
+    }
+  );</code></pre>
+<p>On axes <code>&lt;g&gt;</code> tags we have to call <code>transition</code> method before <code>call</code>ing axis. In case of <code>&lt;rect&gt;</code> elements also only adding <code>transition</code> method before changeing attributes is necessary, but we also have to handle differently two situations:</p>
+<ul>
+<li><code>enter</code> - when <code>&lt;rect&gt;</code> elements are created</li>
+<li><code>update</code> - when <code>&lt;rect&gt;</code> elements are updated</li>
+<li><code>exit</code> - there is also 3rd case, when element is removed from the plot, but it will now be needed in our case</li>
+</ul>
+<p><code>join</code> method is overloaded - can accept:</p>
+<ul>
+<li>element name (single string eg - “rect”) - then it just <code>append</code> element to placeholders</li>
+<li>1-3 functions (<code>(enter) =&gt; {...}</code>, <code>(update) =&gt; {...}</code>, <code>(remove) =&gt; {...}</code>) - then it applies one of 3 functions to selection elements based on the element status</li>
+</ul>
+<p>We also have to add to the <code>&lt;rect&gt;</code> elements the same class that we use in <code>selectAll</code> (<code>&quot;my-bar-class&quot;</code>). Otherwise D3 will add new elements on each update.</p>
+<p>That’s it! Thanks to magical <code>transition</code> method we can repeat after Dr Frankensten <em>“It’s alive!”</em></p>
+<button onclick="updateData()">
+It’s alive!
+</button>
+<div class="plot-style">
+<p><svg id="plot-interactive"> <g class="plot"> <g class="axis-x"></g> <g class="axis-y"></g> </g> </svg></p>
+</div>
+<script type="text/javascript">
+let randomData = dummyData;
+
+let updateData = () => {
+  randomData.forEach((row) => {
+    row.value = Math.random() * 100;
+  });
+  updatePlot(randomData);
+}
+
+mySvg = d3
+  .select("#plot-interactive")
+  .attr("width", svgWidth)
+  .attr("height", svgHeight)
+
+plot = mySvg
+  .select(".plot")
+  .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+plot.select(".axis-y").call(axisY);
+
+let updatePlot = (data) => {
+  let valueMax = d3.max(data, (row) => row.value);
+  scaleX.domain([0, valueMax]);
+  plot.select(".axis-x")
+    .attr("transform", `translate(0, ${plotHeight})`)
+    .transition()
+    .call(axisX)
+
+  plot.selectAll(".my-bar-class")
+    .data(data)
+    .join(
+      (enter) => {
+        enter
+          .append("rect")
+          .attr("class", "my-bar-class")
+          .attr("x", 0)
+          .attr("height", scaleY.bandwidth())
+          .attr("y", (row) => scaleY(row.category))
+          .attr("width", (row) => scaleX(row.value));
+      },
+      (update) => {
+        update
+          .transition()
+          .attr("width", (row) => scaleX(row.value));
+      }
+    );
+};
+
+updatePlot(randomData);
 </script>
 <style type="text/css">
-#plot-style .domain, #plot-style .axis-y > .tick > line {
+.plot-style .domain, .plot-style .axis-y > .tick > line {
   stroke: transparent;
 }
-#plot-style .axis-x > .tick > line {
+.plot-style .axis-x > .tick > line {
   opacity: 0.2;
 }
-#plot-style .tick > text {
+.plot-style .tick > text {
   font-family: Verdana;
-  font-size: 14px;
+  font-size: 12px;
 }
-#plot-style .axis-y > .tick > text {
+.plot-style .axis-y > .tick > text {
   transform: translateX(-10px);
 }
-#plot-style rect {
+.plot-style rect {
   fill: #125D98;
   opacity: 0.6;
 }
 </style>
 </div>
+<div id="wrap-it-up" class="section level1">
+<h1>Wrap it up</h1>
+<p>Final working example of Shiny app with D3 barplot is:</p>
+<ul>
+<li><code>app.R</code></li>
+</ul>
+<pre class="r"><code>library(shiny)
+library(purrr)
+
+ui &lt;- fluidPage(
+  tags$head(
+    tags$link(rel = &quot;stylesheet&quot;, type = &quot;text/css&quot;, href = &quot;style.css&quot;),
+    tags$script(src = &quot;index.js&quot;),
+    tags$script(src = &quot;d3.min.js&quot;)
+  ),
+  div(
+    class = &quot;card&quot;,
+    actionButton(inputId = &quot;update&quot;, label = &quot;It&#39;s alive!&quot;),
+    tags$svg(
+      tags$g(
+        class = &quot;plot&quot;,
+        tags$g(class = &quot;axis-x&quot;),
+        tags$g(class = &quot;axis-y&quot;)
+      )
+    )
+  )
+)
+
+server &lt;- function(input, output, session) {
+  generate_data &lt;- function() {
+    data.frame(
+      category = c(&quot;A&quot;, &quot;B&quot;, &quot;C&quot;),
+      value = runif(3) * 100
+    )
+  }
+  render_barplot &lt;- function() {
+    session$sendCustomMessage(&quot;render_barplot&quot;, transpose(generate_data()))
+  }
+  render_barplot()
+  observeEvent(input$update, {
+    render_barplot()
+  })
+}
+
+shinyApp(ui, server)</code></pre>
+<ul>
+<li><code>www/index.js</code></li>
+</ul>
+<pre class="js"><code>$(function () {
+  Shiny.addCustomMessageHandler(&quot;render_barplot&quot;, function (dummyData) {
+    const svgWidth = 500;
+    const svgHeight = 200;
+    const margin = {
+      top: 30,
+      right: 10,
+      bottom: 30,
+      left: 30,
+    };
+    const plotWidth = svgWidth - margin.left - margin.right;
+    const plotHeight = svgHeight - margin.top - margin.bottom;
+
+    const domainX = [0, d3.max(dummyData, (row) =&gt; row.value)];
+    const domainY = [...new Set(dummyData.map((row) =&gt; row.category))];
+
+    const scaleX = d3.scaleLinear(domainX, [0, plotWidth]);
+    const scaleY = d3.scaleBand(domainY, [0, plotHeight]).padding(0.2);
+
+    const axisX = d3.axisBottom(scaleX).tickSize(-plotHeight);
+    const axisY = d3.axisLeft(scaleY);
+
+    mySvg = d3.select(&quot;svg&quot;).attr(&quot;width&quot;, svgWidth).attr(&quot;height&quot;, svgHeight);
+
+    plot = mySvg
+      .select(&quot;.plot&quot;)
+      .attr(&quot;transform&quot;, `translate(${margin.left}, ${margin.top})`);
+
+    plot
+      .select(&quot;.axis-x&quot;)
+      .attr(&quot;transform&quot;, `translate(0, ${plotHeight})`)
+      .transition()
+      .call(axisX);
+
+    plot.select(&quot;.axis-y&quot;).call(axisY);
+
+    plot
+      .selectAll(&quot;.bar&quot;)
+      .data(dummyData)
+      .join(
+        (enter) =&gt; {
+          enter
+            .append(&quot;rect&quot;)
+            .attr(&quot;class&quot;, &quot;bar&quot;)
+            .attr(&quot;x&quot;, 0)
+            .attr(&quot;height&quot;, scaleY.bandwidth())
+            .attr(&quot;y&quot;, (row) =&gt; scaleY(row.category))
+            .attr(&quot;width&quot;, (row) =&gt; scaleX(row.value));
+        },
+        (update) =&gt; {
+          update.transition().attr(&quot;width&quot;, (row) =&gt; scaleX(row.value));
+        }
+      );
+  });
+});</code></pre>
+<ul>
+<li><code>www/style.css</code></li>
+</ul>
+<pre class="css"><code>.domain, .axis-y &gt; .tick &gt; line {
+  stroke: transparent;
+}
+.axis-x &gt; .tick &gt; line {
+  opacity: 0.2;
+}
+.tick &gt; text {
+  font-family: Verdana;
+  font-size: 12px;
+}
+.axis-y &gt; .tick &gt; text {
+  transform: translateX(-10px);
+}
+rect {
+  fill: #125D98;
+  opacity: 0.6;
+}
+
+/* card style */
+.card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border: 0.1px solid lightgray;
+  box-shadow: 5px 5px 5px lightgray;
+  width: min-content;
+  padding: 40px;
+}
+.container-fluid {
+  display: flex;
+  justify-content: center;
+  margin-top: 50px;
+}</code></pre>
 </div>
 
 

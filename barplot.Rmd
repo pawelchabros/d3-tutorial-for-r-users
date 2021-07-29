@@ -51,32 +51,23 @@ const mySvg = d3
 
 (`select`method accepts any css selector)
 
-We can achieve the same result with HTML:
-
-```{HTML}
-<div id="plot-parent">
-  <svg width="500" height="200"></svg>
-</div>
-```
-
-And even with Shiny:
+We can achieve the same result with Shiny:
 
 ```{r eval=FALSE}
-div(
-  id = "plot-parent",
-  tags$svg(width = 500, height = 200)
-)
+tags$svg(width = 500, height = 200)
 ```
 
-In two last options in D3 we would olny need to store created `<svg>` in variable:
+Then in D3 we would olny need to store created `<svg>` in a variable:
 
 ```{js eval=FALSE}
 const mySvg = d3.select("svg");
 ```
 
+Since we're Shiny users we will proceed with second option.
+
 # Bars
 
-Now we need to add some margin, scales, axes... Ok let's put some bars first to not get bored at the beginning.
+Now we need to add some margin, scales, axes... Ok let's put some bars first to not get too bored at the beginning.
 
 We will use following dummy data:
 
@@ -293,9 +284,20 @@ addDummyRect(mySvg, scaleX);
 
 To see if we realy have correct values we must add axis. This time D3 offers very convinient function:
 
+In Shiny we have to add `<g>` tag to append our axis to:
+
+```{r eval=FALSE}
+tags$svg(
+  width = 500, height = 200,
+  tags$g(class = "axis-x")
+)
+```
+
+In JS we have to create axis by passing our scale to `axisBottom` function, select our `<g>` tag with class `"axis-x"` and append axis to it.
+
 ```{js eval=FALSE}
 const axisX = d3.axisBottom(scaleX);
-mySvg.append("g").call(axisX);
+mySvg.select(".axis-x").call(axisX);
 ```
 
 `<g>` tag is similar to `<div>` with one difference - it can't have any visual style. It's used only to group other elements.
@@ -326,9 +328,9 @@ Axis bottom means that labels and ticks are on the bottom of the axis. D3 is not
 ```{js eval=FALSE}
 const svgHeight = 200;
 
-mySvg.append("g")
+mySvg.select(".axis-x")
   .attr("transform", `translate(0, ${svgHeight})`)
-  .call(axisX)
+  .call(axisX);
 ```
 
 Here - `` `translate(0, ${svgHeight})` `` - I used string interpolation, similar to R `glue`. In JS this functionality is built in. You have to use backticks - `` ` ``, and inside `${}` you can put variable or code that will evaluate.
@@ -341,12 +343,22 @@ mySvg = initSvg("#plot-axis-transform");
 addDummyRect(mySvg, scaleX);
 mySvg.append("g")
   .attr("transform", `translate(0, ${svgHeight})`)
-  .call(axisX)
+  .call(axisX);
 ```
 
 ## Margin
 
 Our axis is this thin line at the bottom. We can't see ticks and labels because they are outside of our svg. To make them visible we need to add margins to out chart. To do this we can use `<g>` tag and `transform` attribute.
+
+```{r eval=FALSE}
+tags$svg(
+  width = 500, height = 200,
+  tags$g(
+    class = "plot",
+    tags$g(class = "axis-x")
+  )
+)
+```
 
 ```{js eval=FALSE}
 const svgWidth = 500;
@@ -361,13 +373,12 @@ const plotWidth = svgWidth - margin.left - margin.right;
 const plotHeight = svgHeight - margin.top - margin.bottom;
 
 const mySvg = d3
-  .select("#plot-parent")
-  .append("svg")
+  .select("svg")
   .attr("width", svgWidth)
-  .attr("height", svgHeight)
+  .attr("height", svgHeight);
 
 const plot = mySvg
-  .append("g")
+  .select(".plot")
   .attr("transform", `translate(${margin.left}, ${margin.top})`);
 ```
 
@@ -387,9 +398,9 @@ With respect to the blue point x-axis has to be `transform`ed in y-dimension wit
 We also have to append `<rect>` elements to `plot`.
 
 ```{js eval=FALSE}
-plot.append("g")
+plot.select(".axis-x")
   .attr("transform", `translate(0, ${plotHeight})`)
-  .call(axisX)
+  .call(axisX);
 
 plot.selectAll(".my-bar-class")
   .data(dummyData)
@@ -400,7 +411,11 @@ plot.selectAll(".my-bar-class")
     .attr("width", (row) => scaleX(row.value));
 ```
 
-<div id="plot-axis-margin"></div>
+<svg id="plot-axis-margin">
+  <g class="plot">
+    <g class="axis-x"></g>
+  </g>
+</svg>
 
 ```{js echo=FALSE}
 const margin = {
@@ -414,20 +429,19 @@ const plotHeight = svgHeight - margin.top - margin.bottom;
 
 mySvg = d3
   .select("#plot-axis-margin")
-  .append("svg")
   .attr("width", svgWidth)
-  .attr("height", svgHeight)
+  .attr("height", svgHeight);
 
 let plot = mySvg
-  .append("g")
+  .select(".plot")
   .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
 scaleX.range([0, plotWidth]);
 
 addDummyRect(plot, scaleX, plotHeight);
-plot.append("g")
+plot.select(".axis-x")
   .attr("transform", `translate(0, ${plotHeight})`)
-  .call(axisX)
+  .call(axisX);
 ```
 Axis ticks and labels are now visible. We can also see that bars width is scaled properly.
 
@@ -437,9 +451,9 @@ The last piece we're missing is y-axis. Let's add it now. For categorical variab
 const domainY = [...new Set(dummyData.map((row) => row.category))];
 const scaleY = d3
   .scaleBand(domainY, [0, plotHeight])
-  .padding(0.2)
+  .padding(0.2);
 const axisY = d3.axisLeft(scaleY);
-plot.append("g").call(axisY);
+plot.select(".axis-x").call(axisY);
 
 plot.selectAll(".my-bar-class")
   .data(dummyData)
@@ -455,22 +469,25 @@ plot.selectAll(".my-bar-class")
 * y-axis should start at point (0, 0) of our `plot` so `transform` is not needed here
 * we can use `scaleY` to get `y` position of bars
 
-<div id="plot-complete"></div>
+<svg id="plot-complete">
+  <g class="plot">
+    <g class="axis-x"></g>
+  </g>
+</svg>
 
 ```{js echo=FALSE}
 mySvg = d3
   .select("#plot-complete")
-  .append("svg")
   .attr("width", svgWidth)
-  .attr("height", svgHeight)
+  .attr("height", svgHeight);
 
 plot = mySvg
-  .append("g")
+  .select(".plot")
   .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
-plot.append("g")
+plot.select(".axis-x")
   .attr("transform", `translate(0, ${plotHeight})`)
-  .call(axisX)
+  .call(axisX);
 
 const domainY = [...new Set(dummyData.map((row) => row.category))];
 const scaleY = d3.scaleBand(domainY, [0, plotHeight]).padding(0.2);
@@ -485,6 +502,7 @@ plot.selectAll(".my-bar-class")
     .attr("y", (row) => scaleY(row.category))
     .attr("width", (row) => scaleX(row.value));
 ```
+
 # Pimp my chart
 
 Default D3 chars doesn't look good. It's possible to change styles with D3 but personally I prefer to use CSS.
@@ -533,42 +551,40 @@ d3.select("#axis-style").append("g").attr("transform", "translate(15, 10) scale(
 
 To get grid lines with minimal effort I often use the trick to set axis ticks size to negative plot width/height.
 
-In our plot vertical lines would not be very usefull. To differentiate them from horizontal I will add classes to `<g>` tags.
-
 ```{js eval=FALSE}
 const axisX = d3.axisBottom(scaleX).tickSize(-plotHeight);
 const axisY = d3.axisLeft(scaleY).tick(-plotWidth);
 
-plot.append("g")
-  .attr("class", "axis-x")
+plot.select(".axis-x")
   .attr("transform", `translate(0, ${plotHeight})`)
-  .call(axisX);
-plot.append("g")
-  .attr("class", "axis-y")
+  .call(axisX)
+plot.select(".axis-y")
   .call(axisY);
 ```
 
-<div id="plot-grid"></div>
+<svg id="plot-grid">
+  <g class="plot">
+    <g class="axis-x"></g>
+    <g class="axis-y"></g>
+  </g>
+</svg>
 
 ```{js echo=FALSE}
 mySvg = d3
   .select("#plot-grid")
-  .append("svg")
   .attr("width", svgWidth)
-  .attr("height", svgHeight)
+  .attr("height", svgHeight);
 
 plot = mySvg
-  .append("g")
+  .select(".plot")
   .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
-plot.append("g")
-  .attr("class", "axis-x")
+plot.select(".axis-x")
   .attr("transform", `translate(0, ${plotHeight})`)
   .call(axisX.tickSize(-plotHeight));
 
-plot.append("g")
-  .attr("class", "axis-y")
-  .call(axisY.tickSize(-plotWidth))
+plot.select(".axis-y")
+  .call(axisY.tickSize(-plotWidth));
 
 plot.selectAll(".my-bar-class")
   .data(dummyData)
@@ -602,7 +618,7 @@ plot.selectAll(".my-bar-class")
 ```{css eval=FALSE}
 .tick > text {
   font-family: Verdana;
-  font-size: 14px;
+  font-size: 12px;
 }
 ```
 
@@ -623,30 +639,289 @@ rect {
 }
 ```
 
-<div id="plot-style"></div>
+<div id="plot-style" class="plot-style"></div>
 
 ```{js echo=FALSE}
-$("#plot-style").append($("#plot-grid > svg").clone());
+$("#plot-style").append($("#plot-grid").clone());
+```
+
+# Transitions
+
+It was a lot of effort to make a simple barplot. But now, adding smooth, good looking transitions to our plot is super easy!
+
+```{js eval=FALSE}
+plot.select(".axis-x")
+  .attr("transform", `translate(0, ${plotHeight})`)
+  .transition()
+  .call(axisX);
+
+plot.select(".axis-y")
+  .transition()
+  .call(axisY);
+
+plot.selectAll(".my-bar-class")
+  .data(dummyData)
+  .join(
+    (enter) => {
+      enter
+        .append("rect")
+        .attr("class", "my-bar-class")
+        .attr("x", 0)
+        .attr("height", scaleY.bandwidth())
+        .attr("y", (row) => scaleY(row.category))
+        .attr("width", (row) => scaleX(row.value));
+    },
+    (update) => {
+      update
+        .transition()
+        .attr("width", (row) => scaleX(row.value));
+    }
+  );
+```
+
+On axes `<g>` tags we have to call `transition` method before `call`ing axis.
+In case of `<rect>` elements also only adding `transition` method before changeing attributes is necessary, but we also have to handle differently two situations:
+
+* `enter` - when `<rect>` elements are created
+* `update` - when `<rect>` elements are updated
+* `exit` - there is also 3rd case, when element is removed from the plot, but it will now be needed in our case
+
+`join` method is overloaded - can accept:
+
+* element name (single string eg - "rect") - then it just `append` element to placeholders
+* 1-3 functions (`(enter) => {...}`, `(update) => {...}`, `(remove) => {...}`) - then it applies one of 3 functions to selection elements based on the element status
+
+We also have to add to the `<rect>` elements the same class that we use in `selectAll` (`"my-bar-class"`). Otherwise D3 will add new elements on each update.
+
+That's it! Thanks to magical `transition` method we can repeat after Dr Frankensten *"It's alive!"*
+
+<button onclick=updateData()>It's alive!</button>
+
+<div class="plot-style">
+  <svg id="plot-interactive">
+    <g class="plot">
+      <g class="axis-x"></g>
+      <g class="axis-y"></g>
+    </g>
+  </svg>
+</div>
+
+```{js echo=FALSE}
+let randomData = dummyData;
+
+let updateData = () => {
+  randomData.forEach((row) => {
+    row.value = Math.random() * 100;
+  });
+  updatePlot(randomData);
+}
+
+mySvg = d3
+  .select("#plot-interactive")
+  .attr("width", svgWidth)
+  .attr("height", svgHeight)
+
+plot = mySvg
+  .select(".plot")
+  .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+plot.select(".axis-y").call(axisY);
+
+let updatePlot = (data) => {
+  let valueMax = d3.max(data, (row) => row.value);
+  scaleX.domain([0, valueMax]);
+  plot.select(".axis-x")
+    .attr("transform", `translate(0, ${plotHeight})`)
+    .transition()
+    .call(axisX)
+
+  plot.selectAll(".my-bar-class")
+    .data(data)
+    .join(
+      (enter) => {
+        enter
+          .append("rect")
+          .attr("class", "my-bar-class")
+          .attr("x", 0)
+          .attr("height", scaleY.bandwidth())
+          .attr("y", (row) => scaleY(row.category))
+          .attr("width", (row) => scaleX(row.value));
+      },
+      (update) => {
+        update
+          .transition()
+          .attr("width", (row) => scaleX(row.value));
+      }
+    );
+};
+
+updatePlot(randomData);
 ```
 
 ```{css echo=FALSE}
-#plot-style .domain, #plot-style .axis-y > .tick > line {
+.plot-style .domain, .plot-style .axis-y > .tick > line {
   stroke: transparent;
 }
-#plot-style .axis-x > .tick > line {
+.plot-style .axis-x > .tick > line {
   opacity: 0.2;
 }
-#plot-style .tick > text {
+.plot-style .tick > text {
   font-family: Verdana;
-  font-size: 14px;
+  font-size: 12px;
 }
-#plot-style .axis-y > .tick > text {
+.plot-style .axis-y > .tick > text {
   transform: translateX(-10px);
 }
-#plot-style rect {
+.plot-style rect {
   fill: #125D98;
   opacity: 0.6;
 }
 ```
 
+# Wrap it up
+
+Final working example of Shiny app with D3 barplot is:
+
+* `app.R`
+
+```{r eval=FALSE}
+library(shiny)
+library(purrr)
+
+ui <- fluidPage(
+  tags$head(
+    tags$link(rel = "stylesheet", type = "text/css", href = "style.css"),
+    tags$script(src = "index.js"),
+    tags$script(src = "d3.min.js")
+  ),
+  div(
+    class = "card",
+    actionButton(inputId = "update", label = "It's alive!"),
+    tags$svg(
+      tags$g(
+        class = "plot",
+        tags$g(class = "axis-x"),
+        tags$g(class = "axis-y")
+      )
+    )
+  )
+)
+
+server <- function(input, output, session) {
+  generate_data <- function() {
+    data.frame(
+      category = c("A", "B", "C"),
+      value = runif(3) * 100
+    )
+  }
+  render_barplot <- function() {
+    session$sendCustomMessage("render_barplot", transpose(generate_data()))
+  }
+  render_barplot()
+  observeEvent(input$update, {
+    render_barplot()
+  })
+}
+
+shinyApp(ui, server)
+```
+
+* `www/index.js`
+
+```{js eval=FALSE}
+$(function () {
+  Shiny.addCustomMessageHandler("render_barplot", function (dummyData) {
+    const svgWidth = 500;
+    const svgHeight = 200;
+    const margin = {
+      top: 30,
+      right: 10,
+      bottom: 30,
+      left: 30,
+    };
+    const plotWidth = svgWidth - margin.left - margin.right;
+    const plotHeight = svgHeight - margin.top - margin.bottom;
+
+    const domainX = [0, d3.max(dummyData, (row) => row.value)];
+    const domainY = [...new Set(dummyData.map((row) => row.category))];
+
+    const scaleX = d3.scaleLinear(domainX, [0, plotWidth]);
+    const scaleY = d3.scaleBand(domainY, [0, plotHeight]).padding(0.2);
+
+    const axisX = d3.axisBottom(scaleX).tickSize(-plotHeight);
+    const axisY = d3.axisLeft(scaleY);
+
+    mySvg = d3.select("svg").attr("width", svgWidth).attr("height", svgHeight);
+
+    plot = mySvg
+      .select(".plot")
+      .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+    plot
+      .select(".axis-x")
+      .attr("transform", `translate(0, ${plotHeight})`)
+      .transition()
+      .call(axisX);
+
+    plot.select(".axis-y").call(axisY);
+
+    plot
+      .selectAll(".bar")
+      .data(dummyData)
+      .join(
+        (enter) => {
+          enter
+            .append("rect")
+            .attr("class", "bar")
+            .attr("x", 0)
+            .attr("height", scaleY.bandwidth())
+            .attr("y", (row) => scaleY(row.category))
+            .attr("width", (row) => scaleX(row.value));
+        },
+        (update) => {
+          update.transition().attr("width", (row) => scaleX(row.value));
+        }
+      );
+  });
+});
+```
+
+* `www/style.css`
+
+```{css eval=FALSE}
+.domain, .axis-y > .tick > line {
+  stroke: transparent;
+}
+.axis-x > .tick > line {
+  opacity: 0.2;
+}
+.tick > text {
+  font-family: Verdana;
+  font-size: 12px;
+}
+.axis-y > .tick > text {
+  transform: translateX(-10px);
+}
+rect {
+  fill: #125D98;
+  opacity: 0.6;
+}
+
+/* card style */
+.card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border: 0.1px solid lightgray;
+  box-shadow: 5px 5px 5px lightgray;
+  width: min-content;
+  padding: 40px;
+}
+.container-fluid {
+  display: flex;
+  justify-content: center;
+  margin-top: 50px;
+}
+```
 
