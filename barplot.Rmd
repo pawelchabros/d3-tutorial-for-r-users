@@ -1,6 +1,12 @@
 ---
 title: "D3 tutorial for R users - barplot"
-output: html_document
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    theme: cosmo
+    highlight: tango
 ---
 
 ```{r setup, include=FALSE}
@@ -34,6 +40,10 @@ const addDummyRect = (svg, scaleX = (x) => x, height = 200) => {
 > **"I can't learn D3 because I don't know JavaScript."** - `FALSE`
 
 Some knowledge of JavaScript is needed, but really very basic. Learning new language is just remembering some conventions and code syntax. Most important is understanding what code is doing. Remebering the syntax will come with time.
+
+# Spoiler Alert!
+
+You can see final product of this tutorial [here](https://pawelchabros.shinyapps.io/d3-tutorial-for-r-users/).
 
 # svg
 
