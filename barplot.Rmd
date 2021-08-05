@@ -39,7 +39,7 @@ const addDummyRect = (svg, scaleX = (x) => x, height = 200) => {
 
 > **"I can't learn D3 because I don't know JavaScript."** - `FALSE`
 
-Some knowledge of JavaScript is needed, but really very basic. Learning new language is just remembering some conventions and code syntax. Most important is understanding what code is doing. Remebering the syntax will come with time.
+Some knowledge of JavaScript is needed, but really very basic. Learning new language is just remembering some conventions and code syntax. Most important is understanding what code is doing. Remembering the syntax will come with time.
 
 # Spoiler Alert!
 
@@ -67,7 +67,7 @@ We can achieve the same result with Shiny:
 tags$svg(width = 500, height = 200)
 ```
 
-Then in D3 we would olny need to store created `<svg>` in a variable:
+Then in D3 we would only need to store created `<svg>` in a variable:
 
 ```{js eval=FALSE}
 const mySvg = d3.select("svg");
@@ -202,7 +202,7 @@ mySvg = initSvg("#plot-parent-bigger");
 addDummyRect(mySvg);
 ```
 
-Ok. Now we realy need scale. `d3.scaleLinear` takes two arguments - domain and range:
+Ok. Now we really need scale. `d3.scaleLinear` takes two arguments - domain and range:
 
 * domain - minimum and maximum value in our data
 * range - minimum and maximum value that we want map to (width of our svg in this case)
@@ -292,7 +292,7 @@ addDummyRect(mySvg, scaleX);
 
 # Axis
 
-To see if we realy have correct values we must add axis. This time D3 offers very convinient function:
+To see if we have correct values we must add axis. This time D3 offers very convenient function:
 
 In Shiny we have to add `<g>` tag to append our axis to:
 
@@ -333,7 +333,7 @@ mySvg.append("g").call(axisX);
 
 *"Didn't I said axis**Bottom**??? Why it's on top?"*
 
-Axis bottom means that labels and ticks are on the bottom of the axis. D3 is not aweare what's your chart height, so it put's it at (0, 0) coordinates. It's our duty to put it in right place. We can do it using `transform` attribute:
+Axis bottom means that labels and ticks are on the bottom of the axis. D3 is not aware what's your chart height, so it put's it at (0, 0) coordinates. It's our duty to put it in right place. We can do it using `transform` attribute:
 
 ```{js eval=FALSE}
 const svgHeight = 200;
@@ -690,7 +690,7 @@ plot.selectAll(".my-bar-class")
 ```
 
 On axes `<g>` tags we have to call `transition` method before `call`ing axis.
-In case of `<rect>` elements also only adding `transition` method before changeing attributes is necessary, but we also have to handle differently two situations:
+In case of `<rect>` elements also only adding `transition` method before changing attributes is necessary, but we also have to handle differently two situations:
 
 * `enter` - when `<rect>` elements are created
 * `update` - when `<rect>` elements are updated
@@ -703,7 +703,7 @@ In case of `<rect>` elements also only adding `transition` method before changei
 
 We also have to add to the `<rect>` elements the same class that we use in `selectAll` (`"my-bar-class"`). Otherwise D3 will add new elements on each update.
 
-That's it! Thanks to magical `transition` method we can repeat after Dr Frankensten *"It's alive!"*
+That's it! Thanks to magical `transition` method we can repeat after Dr Frankenstein *"It's alive!"*
 
 <button onclick=updateData()>It's alive!</button>
 
