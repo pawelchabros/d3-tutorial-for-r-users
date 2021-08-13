@@ -118,7 +118,7 @@ addDummyRect(mySvg);
 *"Ok... we have 3 ugly rectangles and some spaghetti code that is not easy at all."*
 Yee, looks a bit strange, but let's try to understand what this code do. To make it simpler I will do the same using R:
 
-```{r}
+```{r eval=FALSE}
 map(1:nrow(dummy_data), function(i) {
   tags$rect(
     x = 0,
@@ -127,6 +127,21 @@ map(1:nrow(dummy_data), function(i) {
     width = dummy_data[i, ]$value
   )
 })
+```
+
+```{r echo=FALSE}
+tags$svg(
+  width = 500,
+  height = 200,
+  map(1:nrow(dummy_data), function(i) {
+    tags$rect(
+      x = 0,
+      height = 200 / 3 * 0.8,
+      y = 200 / 3 * (i - 1),
+      width = dummy_data[i, ]$value
+    )
+  })
+)
 ```
 
 The main thing this code does is iterating through data and map it to `<rect>` elements. Let's also discuss D3 code in details:
